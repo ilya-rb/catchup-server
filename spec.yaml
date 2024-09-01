@@ -1,0 +1,40 @@
+name: catchup-server
+region: fra1 # Frankfurt, Germany
+services:
+  - name: catchup-server
+    dockerfile_path: Dockerfile
+    source_dir: .
+    github:
+      branch: master
+      deploy_on_push: true
+      repo: ilya-rb/catchup
+    health_check:
+      http_path: /healthcheck
+    http_port: 8000
+    instance_count: 1 # TODO: to configure for prod
+    instance_size_slug: basic-xxs # TODO: to configure for prod
+    routes:
+      - path: /
+    envs:
+      - key: APP_DATABASE__USERNAME
+        scope: RUN_TIME
+        value: ${catchup.USERNAME}
+      - key: APP_DATABASE__PASSWORD
+        scope: RUN_TIME
+        value: ${catchup.PASSWORD}
+      - key: APP_DATABASE__HOST
+        scope: RUN_TIME
+        value: ${catchup.HOSTNAME}
+      - key: APP_DATABASE__PORT
+        scope: RUN_TIME
+        value: ${catchup.PORT}
+      - key: APP_DATABASE__DATABASE_NAME
+        scope: RUN_TIME
+        value: ${catchup.DATABASE}
+
+databases:
+  - engine: PG
+    name: catchup
+    num_nodes: 1 # TODO: to configure for prod
+    size: db-s-dev-database # TODO: to configure for prod
+    version: "12"
