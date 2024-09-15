@@ -9,5 +9,12 @@ database:
   password: "password"
   database_name: "catchup"
   require_ssl: false
+supported_sources:
+  irishtimes:
+    key: "irishtimes"
+  hackernews:
+    key: "hackernews"
+  dou:
+    key: "dou"
 http_client:
   timeout_millis: 10000

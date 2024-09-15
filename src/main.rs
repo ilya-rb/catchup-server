@@ -7,8 +7,8 @@ async fn main() -> Result<(), std::io::Error> {
     telemetry::init_tracing("catchup-server".into(), LogLevel::Info, std::io::stdout);
 
     let settings = configuration::read_configuration().expect("Failed to read app settings");
-    let app = App::build(settings).await?;
-    app.run_until_stopped().await?;
+    let app = App::build(settings.clone()).await?;
+    app.run_until_stopped(settings).await?;
 
     Ok(())
 }

@@ -3,6 +3,7 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgSslMode;
 use sqlx::ConnectOptions;
+use std::collections::HashMap;
 
 use crate::environment::Environment;
 
@@ -11,6 +12,7 @@ pub struct Settings {
     pub app: AppSettings,
     pub database: DatabaseSettings,
     pub http_client: HttpClientSettings,
+    pub supported_sources: HashMap<String, SupportedSource>,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -35,6 +37,11 @@ pub struct DatabaseSettings {
 #[derive(serde::Deserialize, Clone)]
 pub struct HttpClientSettings {
     pub timeout_millis: u64,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct SupportedSource {
+    pub key: String,
 }
 
 pub fn read_configuration() -> Result<Settings, config::ConfigError> {

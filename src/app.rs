@@ -1,6 +1,7 @@
 use std::net::TcpListener;
 
 use actix_web::{web, HttpServer};
+use actix_web::web::Data;
 use reqwest::Client;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
@@ -21,7 +22,7 @@ impl App {
         let db_pool = PgPoolOptions::new().connect_lazy_with(settings.database.with_db());
         let address = format!("{}:{}", settings.app.host, settings.app.port);
         let request_listener = TcpListener::bind(address)?;
-        let port = request_listener.local_addr().unwrap().port();
+        let port = request_listener.local_addr()?.port();
         let http_client = Client::builder()
             .timeout(settings.http_client.timeout())
             .build()
@@ -35,7 +36,7 @@ impl App {
         })
     }
 
-    pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+    pub async fn run_until_stopped(self, settings: Settings) -> Result<(), std::io::Error> {
         let db_pool = web::Data::new(self.db_pool);
         let http_client = web::Data::new(self.http_client);
         let server = HttpServer::new(move || {
@@ -47,6 +48,12 @@ impl App {
                 .route("/supported_sources", web::get().to(api::supported_sources))
                 .app_data(db_pool.clone())
                 .app_data(http_client.clone())
+                .app_data(Data::new(settings.clone()))
+                .service(
+                    actix_files::Files::new("/images", "./static/")
+                        .show_files_listing()
+                        .use_last_modified(true),
+                )
         })
         .listen(self.request_listener)?
         .run();
