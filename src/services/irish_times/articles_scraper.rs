@@ -41,7 +41,7 @@ fn parse_articles(url: Url, document: &Html, tag: String) -> Result<Vec<Article>
                 url,
                 NewsSource::IrishTimes,
                 Some(vec![tag.clone()]),
-            )
+            ).unwrap() // TODO: Handle error and skip broken articles
         })
         .collect::<Vec<Article>>();
 

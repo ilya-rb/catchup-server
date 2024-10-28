@@ -29,8 +29,8 @@ fn parse_articles(document: &Html) -> Result<Vec<Article>, Box<dyn Error>> {
             let tags = parse_tags(&article);
             // TODO: Handle error, log and skip broken articles
             let url = Url::parse(link.as_str()).expect("Invalid URL");
-
-            Article::new(title, Some(description), url, NewsSource::Dou, tags)
+            // TODO: Handle error and skip broken articles
+            Article::new(title, Some(description), url, NewsSource::Dou, tags).unwrap()
         })
         .collect::<Vec<Article>>();
 
@@ -85,7 +85,7 @@ mod tests {
             Url::parse("https://example.com").unwrap(),
             NewsSource::Dou,
             Some(vec!["Tag1".into(), "Tag2".into()]),
-        );
+        ).unwrap();
 
         let actual = parse_articles(&Html::parse_document(document)).unwrap();
 

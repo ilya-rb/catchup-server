@@ -17,6 +17,7 @@ struct Hit {
     tags: Vec<String>,
 }
 
+// TODO: Move to config
 const URL: &str = "https://hn.algolia.com/api/v1/search?tags=front_page";
 
 pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
@@ -38,7 +39,7 @@ pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
                 Url::parse(item.url.clone().as_str()).expect("Invalid url"),
                 NewsSource::HackerNews,
                 Some(item.tags),
-            )
+            ).unwrap() // TODO: Handle error and skip broken articles
         })
         .collect();
 
