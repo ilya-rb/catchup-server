@@ -1,7 +1,7 @@
 CREATE TABLE articles
 (
     id          uuid        NOT NULL,
-    PRIMARY KEY (id, link),
+    PRIMARY KEY (id),
     link        TEXT        NOT NULL,
     title       TEXT        NOT NULL,
     description TEXT,
@@ -10,6 +10,5 @@ CREATE TABLE articles
     created_at  timestamptz NOT NULL,
 
     constraint check_title_not_empty check (length(title) > 0),
-    constraint check_link_not_empty check (length(link) > 0),
-    constraint check_source_value check (source in ('irishtimes', 'dou'))
+    constraint check_link_not_empty check (length(link) > 0)
 );

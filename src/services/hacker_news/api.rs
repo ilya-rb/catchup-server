@@ -1,8 +1,7 @@
-use crate::domain::uuid_factory::new_uuid;
 use crate::domain::{Article, NewsSource};
+use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
-use anyhow::Result;
 
 #[derive(Deserialize)]
 struct Response {
@@ -30,13 +29,14 @@ pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
     let articles: Vec<Article> = response
         .hits
         .into_iter()
-        .map(|item| Article {
-            id: new_uuid(),
-            link: item.url.clone(),
-            title: item.title,
-            tags: Some(item.tags),
-            description: Some(item.url.clone()),
-            source: NewsSource::HackerNews,
+        .map(|item| {
+            Article::new(
+                item.title,
+                Some(item.url.clone()),
+                item.url.clone(),
+                NewsSource::HackerNews,
+                Some(item.tags),
+            )
         })
         .collect();
 

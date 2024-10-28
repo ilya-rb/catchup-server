@@ -3,7 +3,7 @@ use std::error::Error;
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 
-use crate::domain::{Article, NewsSource, uuid_factory};
+use crate::domain::{Article, NewsSource};
 
 #[tracing::instrument("Scrape irish times articles")]
 pub async fn scrape_latest_articles(
@@ -27,14 +27,13 @@ fn parse_articles(document: &Html, tag: String) -> Result<Vec<Article>, Box<dyn 
             let (title, link) = parse_title_and_link(&article);
             let description = parse_description(&article);
 
-            Article {
-                id: uuid_factory::new_uuid(),
-                source: NewsSource::IrishTimes,
-                link,
+            Article::new(
                 title,
                 description,
-                tags: Some(vec![tag.clone()])
-            }
+                link,
+                NewsSource::IrishTimes,
+                Some(vec![tag.clone()]),
+            )
         })
         .collect::<Vec<Article>>();
 
@@ -70,34 +69,30 @@ mod tests {
     use rstest::rstest;
     use scraper::Html;
 
-    use crate::domain::Article;
-    use crate::domain::NewsSource;
-    use crate::domain::uuid_factory;
+    use crate::domain::{Article, NewsSource};
 
     use super::parse_articles;
 
     #[rstest]
     #[case(
         r#"<body><div><article><div><h2><a href="/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/">Smart heater gives greater control over comfort and cost</a></h2><p><a>Tech review: Aeno Premium Eco Smart Heater</a></p></div></article></div></body>"#,
-        Article {
-            id: uuid_factory::new_uuid(),
-            title: String::from("Smart heater gives greater control over comfort and cost"),
-            description: Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
-            link: String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
-            source: NewsSource::IrishTimes,
-            tags: Some(vec![String::from("Technology")]),
-        }
+        Article::new(
+            String::from("Smart heater gives greater control over comfort and cost"),
+            Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
+            String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
+            NewsSource::IrishTimes,
+            Some(vec![String::from("Technology")]),
+        )
     )]
     #[case(
         r#"<body><div><article><div><h2><a href="/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/">Smart heater gives greater control over comfort and cost</a></h2></div></article></div></body>"#,
-        Article {
-            id: uuid_factory::new_uuid(),
-            title: String::from("Smart heater gives greater control over comfort and cost"),
-            description: None,
-            link: String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
-            source: NewsSource::IrishTimes,
-            tags: Some(vec![String::from("Technology")]),
-        }
+        Article::new(
+            String::from("Smart heater gives greater control over comfort and cost"),
+            None,
+            String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
+            NewsSource::IrishTimes,
+            Some(vec![String::from("Technology")]),
+        )
     )]
     fn parse_article_correctly(#[case] html: String, #[case] expected: Article) {
         let tag = String::from("Technology");

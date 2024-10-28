@@ -3,7 +3,6 @@ use std::error::Error;
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 
-use crate::domain::uuid_factory::new_uuid;
 use crate::domain::{Article, NewsSource};
 
 #[tracing::instrument("Scraping DOU articles")]
@@ -28,14 +27,7 @@ fn parse_articles(document: &Html) -> Result<Vec<Article>, Box<dyn Error>> {
             let description = parse_description(&article);
             let tags = parse_tags(&article);
 
-            Article {
-                id: new_uuid(),
-                link,
-                title,
-                tags,
-                description: Some(description),
-                source: NewsSource::Dou,
-            }
+            Article::new(title, Some(description), link, NewsSource::Dou, tags)
         })
         .collect::<Vec<Article>>();
 
@@ -76,7 +68,6 @@ fn parse_tags(element: &ElementRef) -> Option<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::uuid_factory::new_uuid;
     use crate::domain::{Article, NewsSource};
     use crate::services::dou::article_scraper::parse_articles;
     use scraper::Html;
@@ -84,14 +75,13 @@ mod tests {
     #[test]
     fn parse_article_correctly() {
         let document = r#"<body><div class="b-lenta"><article><h2><a href="article_link">Article title</a></h2><p>Article description</p><div class="more"><a class="topic">Topic</a><a>Tag1</a><a>Tag2</a></div></article></div></body>"#;
-        let expected = Article {
-            id: new_uuid(),
-            link: "article_link".into(),
-            title: "Article title".into(),
-            description: Some("Article description".into()),
-            tags: Some(vec!["Tag1".into(), "Tag2".into()]),
-            source: NewsSource::Dou,
-        };
+        let expected = Article::new(
+            "Article title".into(),
+            Some("Article description".into()),
+            "article_link".into(),
+            NewsSource::Dou,
+            Some(vec!["Tag1".into(), "Tag2".into()]),
+        );
 
         let actual = parse_articles(&Html::parse_document(document)).unwrap();
 

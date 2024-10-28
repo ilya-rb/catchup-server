@@ -7,10 +7,7 @@ use crate::domain::NewsSource;
 use anyhow::Result;
 
 #[tracing::instrument(name = "Read articles from DB", skip(db, news_source))]
-pub async fn get_by_source(
-    db: &PgPool,
-    news_source: NewsSource,
-) -> Result<Vec<Article>> {
+pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<Article>> {
     let source: String = news_source.clone().into();
     let records = sqlx::query!(
         r#"
