@@ -3,6 +3,7 @@ use serde::Serialize;
 use url::Url;
 use uuid::Uuid;
 
+use crate::domain::tag::Tags;
 use crate::domain::NewsSource;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -12,7 +13,7 @@ pub struct Article {
     pub description: Option<String>,
     pub link: Url,
     pub source: NewsSource,
-    pub tags: Option<Vec<String>>,
+    pub tags: Tags,
 }
 
 impl Article {
@@ -21,7 +22,7 @@ impl Article {
         description: Option<String>,
         link: Url,
         source: NewsSource,
-        tags: Option<Vec<String>>,
+        tags: Tags,
     ) -> Result<Article> {
         #[cfg(test)]
         let id = Uuid::nil();

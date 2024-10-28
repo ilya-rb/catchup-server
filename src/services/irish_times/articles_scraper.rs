@@ -40,8 +40,9 @@ fn parse_articles(url: Url, document: &Html, tag: String) -> Result<Vec<Article>
                 description,
                 url,
                 NewsSource::IrishTimes,
-                Some(vec![tag.clone()]),
-            ).unwrap() // TODO: Handle error and skip broken articles
+                vec![tag.clone()].into(),
+            )
+            .unwrap() // TODO: Handle error and skip broken articles
         })
         .collect::<Vec<Article>>();
 
@@ -78,7 +79,7 @@ mod tests {
     use scraper::Html;
     use url::Url;
 
-    use crate::domain::{Article, NewsSource};
+    use crate::domain::{Article, NewsSource, Tag, Tags};
 
     use super::parse_articles;
 
@@ -90,8 +91,8 @@ mod tests {
             Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::IrishTimes,
-            Some(vec![String::from("Technology")]),
-        )
+            Tags(vec![Tag::new(String::from("Technology")).unwrap()]),
+        ).unwrap()
     )]
     #[case(
         r#"<body><div><article><div><h2><a href="path/to/article">Smart heater gives greater control over comfort and cost</a></h2></div></article></div></body>"#,
@@ -100,8 +101,8 @@ mod tests {
             None,
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::IrishTimes,
-            Some(vec![String::from("Technology")]),
-        )
+            Tags(vec![Tag::new(String::from("Technology")).unwrap()]),
+        ).unwrap()
     )]
     fn parse_article_correctly(#[case] html: String, #[case] expected: Article) {
         let tag = String::from("Technology");

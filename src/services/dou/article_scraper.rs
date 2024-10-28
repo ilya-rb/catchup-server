@@ -4,7 +4,7 @@ use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 use url::Url;
 
-use crate::domain::{Article, NewsSource};
+use crate::domain::{Article, NewsSource, Tags};
 
 #[tracing::instrument("Scraping DOU articles")]
 pub async fn scrape_latest_articles(
@@ -58,15 +58,15 @@ fn parse_description(element: &ElementRef) -> String {
     element.unwrap().text().next().unwrap().into()
 }
 
-fn parse_tags(element: &ElementRef) -> Option<Vec<String>> {
+fn parse_tags(element: &ElementRef) -> Tags {
     let selector = Selector::parse("div.more a:not(.topic)").unwrap();
     let element = element.select(&selector);
 
-    Some(
-        element
-            .map(|tag| tag.text().next().unwrap().into())
-            .collect::<Vec<String>>(),
-    )
+    element
+        .map(|tag| tag.text().next().unwrap().into())
+        .filter(|t: &String| !t.is_empty())
+        .collect::<Vec<String>>()
+        .into()
 }
 
 #[cfg(test)]
@@ -84,8 +84,9 @@ mod tests {
             Some("Article description".into()),
             Url::parse("https://example.com").unwrap(),
             NewsSource::Dou,
-            Some(vec!["Tag1".into(), "Tag2".into()]),
-        ).unwrap();
+            vec![String::from("Tag1"), String::from("Tag2")].into(),
+        )
+        .unwrap();
 
         let actual = parse_articles(&Html::parse_document(document)).unwrap();
 

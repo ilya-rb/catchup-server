@@ -27,7 +27,7 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
             link: Url::parse(row.link.as_str()).unwrap(),
             title: row.title,
             description: row.description,
-            tags: row.tags,
+            tags: row.tags.into(),
             source: news_source.clone(),
         })
         .collect();
@@ -40,6 +40,9 @@ pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<(), sqlx::Error
     let mut transaction = db.begin().await?;
 
     for article in articles {
+        let tags: Vec<String> = article.tags.0.into_iter().map(|t| t.0).collect();
+        let tags: &Vec<String> = tags.as_ref();
+
         sqlx::query!(
             r#"
             INSERT INTO articles (id, source, title, link, description, tags, created_at)
@@ -50,7 +53,7 @@ pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<(), sqlx::Error
             article.title,
             Into::<String>::into(article.link),
             article.description,
-            article.tags.as_deref(),
+            tags,
             Utc::now(),
         )
         .execute(&mut *transaction)

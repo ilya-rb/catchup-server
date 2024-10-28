@@ -38,8 +38,9 @@ pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
                 // TODO: Handle error, log and skip broken articles
                 Url::parse(item.url.clone().as_str()).expect("Invalid url"),
                 NewsSource::HackerNews,
-                Some(item.tags),
-            ).unwrap() // TODO: Handle error and skip broken articles
+                item.tags.into(),
+            )
+            .unwrap() // TODO: Handle error and skip broken articles
         })
         .collect();
 
