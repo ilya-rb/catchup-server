@@ -2,13 +2,14 @@ use std::error::Error;
 
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
+use url::Url;
 
 use crate::domain::{Article, NewsSource};
 
 #[tracing::instrument("Scraping DOU articles")]
 pub async fn scrape_latest_articles(
     http_client: &Client,
-    url: String,
+    url: Url,
 ) -> Result<Vec<Article>, Box<dyn Error>> {
     let response = http_client.get(url).send().await?.error_for_status()?;
     let body = response.text().await?;
@@ -26,8 +27,10 @@ fn parse_articles(document: &Html) -> Result<Vec<Article>, Box<dyn Error>> {
             let (title, link) = parse_title_and_link(&article);
             let description = parse_description(&article);
             let tags = parse_tags(&article);
+            // TODO: Handle error, log and skip broken articles
+            let url = Url::parse(link.as_str()).expect("Invalid URL");
 
-            Article::new(title, Some(description), link, NewsSource::Dou, tags)
+            Article::new(title, Some(description), url, NewsSource::Dou, tags)
         })
         .collect::<Vec<Article>>();
 
@@ -71,14 +74,15 @@ mod tests {
     use crate::domain::{Article, NewsSource};
     use crate::services::dou::article_scraper::parse_articles;
     use scraper::Html;
+    use url::Url;
 
     #[test]
     fn parse_article_correctly() {
-        let document = r#"<body><div class="b-lenta"><article><h2><a href="article_link">Article title</a></h2><p>Article description</p><div class="more"><a class="topic">Topic</a><a>Tag1</a><a>Tag2</a></div></article></div></body>"#;
+        let document = r#"<body><div class="b-lenta"><article><h2><a href="https://example.com">Article title</a></h2><p>Article description</p><div class="more"><a class="topic">Topic</a><a>Tag1</a><a>Tag2</a></div></article></div></body>"#;
         let expected = Article::new(
             "Article title".into(),
             Some("Article description".into()),
-            "article_link".into(),
+            Url::parse("https://example.com").unwrap(),
             NewsSource::Dou,
             Some(vec!["Tag1".into(), "Tag2".into()]),
         );

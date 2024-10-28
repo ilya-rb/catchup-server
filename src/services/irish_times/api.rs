@@ -1,5 +1,5 @@
-use sqlx::PgPool;
 use anyhow::Result;
+use sqlx::PgPool;
 
 use crate::domain::{Article, NewsSource};
 use crate::repository;

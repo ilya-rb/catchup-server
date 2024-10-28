@@ -1,4 +1,5 @@
 use serde::Serialize;
+use url::Url;
 use uuid::Uuid;
 
 use crate::domain::NewsSource;
@@ -8,7 +9,7 @@ pub struct Article {
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub link: String,
+    pub link: Url,
     pub source: NewsSource,
     pub tags: Option<Vec<String>>,
 }
@@ -17,7 +18,7 @@ impl Article {
     pub fn new(
         title: String,
         description: Option<String>,
-        link: String,
+        link: Url,
         source: NewsSource,
         tags: Option<Vec<String>>,
     ) -> Article {

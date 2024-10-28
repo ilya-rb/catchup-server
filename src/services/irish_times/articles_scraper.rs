@@ -1,25 +1,30 @@
-use std::error::Error;
-
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
+use std::error::Error;
+use url::Url;
 
 use crate::domain::{Article, NewsSource};
 
 #[tracing::instrument("Scrape irish times articles")]
 pub async fn scrape_latest_articles(
     http_client: &Client,
-    url: String,
+    url: Url,
     tag: String,
 ) -> Result<Vec<Article>, Box<dyn Error>> {
-    let response = http_client.get(url).send().await?.error_for_status()?;
+    let response = http_client
+        .get(url.clone())
+        .send()
+        .await?
+        .error_for_status()?;
+
     let body = response.text().await?;
     let document = Html::parse_document(&body);
-    let articles = parse_articles(&document, tag)?;
+    let articles = parse_articles(url, &document, tag)?;
 
     Ok(articles)
 }
 
-fn parse_articles(document: &Html, tag: String) -> Result<Vec<Article>, Box<dyn Error>> {
+fn parse_articles(url: Url, document: &Html, tag: String) -> Result<Vec<Article>, Box<dyn Error>> {
     let selector = Selector::parse("article")?;
     let articles = document
         .select(&selector)
@@ -27,10 +32,13 @@ fn parse_articles(document: &Html, tag: String) -> Result<Vec<Article>, Box<dyn 
             let (title, link) = parse_title_and_link(&article);
             let description = parse_description(&article);
 
+            let mut url = url.clone();
+            url.set_path(link.as_str());
+
             Article::new(
                 title,
                 description,
-                link,
+                url,
                 NewsSource::IrishTimes,
                 Some(vec![tag.clone()]),
             )
@@ -68,6 +76,7 @@ fn parse_description(article: &ElementRef) -> Option<String> {
 mod tests {
     use rstest::rstest;
     use scraper::Html;
+    use url::Url;
 
     use crate::domain::{Article, NewsSource};
 
@@ -75,28 +84,29 @@ mod tests {
 
     #[rstest]
     #[case(
-        r#"<body><div><article><div><h2><a href="/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/">Smart heater gives greater control over comfort and cost</a></h2><p><a>Tech review: Aeno Premium Eco Smart Heater</a></p></div></article></div></body>"#,
+        r#"<body><div><article><div><h2><a href="/path/to/article">Smart heater gives greater control over comfort and cost</a></h2><p><a>Tech review: Aeno Premium Eco Smart Heater</a></p></div></article></div></body>"#,
         Article::new(
             String::from("Smart heater gives greater control over comfort and cost"),
             Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
-            String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
+            Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::IrishTimes,
             Some(vec![String::from("Technology")]),
         )
     )]
     #[case(
-        r#"<body><div><article><div><h2><a href="/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/">Smart heater gives greater control over comfort and cost</a></h2></div></article></div></body>"#,
+        r#"<body><div><article><div><h2><a href="path/to/article">Smart heater gives greater control over comfort and cost</a></h2></div></article></div></body>"#,
         Article::new(
             String::from("Smart heater gives greater control over comfort and cost"),
             None,
-            String::from("/technology/consumer-tech/review/2024/05/02/smart-heater-gives-greater-control-over-comfort-and-cost/"),
+            Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::IrishTimes,
             Some(vec![String::from("Technology")]),
         )
     )]
     fn parse_article_correctly(#[case] html: String, #[case] expected: Article) {
         let tag = String::from("Technology");
-        let actual = parse_articles(&Html::parse_fragment(&html), tag).unwrap();
+        let url = Url::parse("https://irishtimes.com").unwrap();
+        let actual = parse_articles(url, &Html::parse_fragment(&html), tag).unwrap();
 
         assert_eq!(actual, vec![expected]);
     }

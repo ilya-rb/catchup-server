@@ -2,6 +2,7 @@ use crate::domain::{Article, NewsSource};
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 struct Response {
@@ -33,7 +34,8 @@ pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
             Article::new(
                 item.title,
                 Some(item.url.clone()),
-                item.url.clone(),
+                // TODO: Handle error, log and skip broken articles
+                Url::parse(item.url.clone().as_str()).expect("Invalid url"),
                 NewsSource::HackerNews,
                 Some(item.tags),
             )

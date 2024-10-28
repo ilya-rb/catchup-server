@@ -16,7 +16,5 @@ impl Job for ScraperJob {
     }
 
     #[tracing::instrument(name = "Running scraper job", skip(self))]
-    fn run(&mut self) {
-
-    }
+    fn run(&mut self) {}
 }

@@ -1,5 +1,6 @@
 use chrono::Utc;
 use sqlx::PgPool;
+use url::Url;
 
 use crate::domain::Article;
 use crate::domain::NewsSource;
@@ -23,7 +24,7 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
         .into_iter()
         .map(|row| Article {
             id: row.id,
-            link: row.link,
+            link: Url::parse(row.link.as_str()).unwrap(),
             title: row.title,
             description: row.description,
             tags: row.tags,
@@ -47,7 +48,7 @@ pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<(), sqlx::Error
             article.id,
             Into::<String>::into(article.source),
             article.title,
-            article.link,
+            Into::<String>::into(article.link),
             article.description,
             article.tags.as_deref(),
             Utc::now(),
