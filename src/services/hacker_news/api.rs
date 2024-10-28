@@ -17,7 +17,7 @@ struct Hit {
     tags: Vec<String>,
 }
 
-const URL: &'static str = "https://hn.algolia.com/api/v1/search?tags=front_page";
+const URL: &str = "https://hn.algolia.com/api/v1/search?tags=front_page";
 
 pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
     let response = http_client

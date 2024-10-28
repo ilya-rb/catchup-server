@@ -16,13 +16,12 @@ pub struct SupportedSource {
 
 #[tracing::instrument(name = "Querying supported sources", skip(settings))]
 pub async fn supported_sources(settings: web::Data<Settings>) -> HttpResponse {
-
     let sources: Vec<SupportedSource> = settings
         .supported_sources
-        .iter()
-        .map(|(_, service)| SupportedSource {
+        .values()
+        .map(|service| SupportedSource {
             id: service.key.clone(),
-            image_url: build_image(service.key.clone(), settings.app.port.clone()),
+            image_url: build_image(service.key.clone(), settings.app.port),
         })
         .collect();
 

@@ -13,6 +13,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub http_client: HttpClientSettings,
     pub supported_sources: HashMap<String, SupportedSource>,
+    pub scraper_config: ScraperConfig,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -42,6 +43,11 @@ pub struct HttpClientSettings {
 #[derive(serde::Deserialize, Clone)]
 pub struct SupportedSource {
     pub key: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct ScraperConfig {
+    pub schedule: String,
 }
 
 pub fn read_configuration() -> Result<Settings, config::ConfigError> {

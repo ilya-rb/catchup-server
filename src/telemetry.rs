@@ -14,8 +14,8 @@ pub enum LogLevel {
 impl LogLevel {
     fn key(&self) -> String {
         match &self {
-            LogLevel::Debug => "debug".into(),
-            LogLevel::Info => "info".into(),
+            LogLevel::Debug => String::from("debug"),
+            LogLevel::Info => String::from("info"),
         }
     }
 }

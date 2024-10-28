@@ -8,9 +8,9 @@ pub enum NewsSource {
     Dou,
 }
 
-pub const KEY_IRISH_TIMES: &'static str = "irishtimes";
-pub const KEY_HACKER_NEWS: &'static str = "hackernews";
-pub const KEY_DOU: &'static str = "dou";
+pub const KEY_IRISH_TIMES: &str = "irishtimes";
+pub const KEY_HACKER_NEWS: &str = "hackernews";
+pub const KEY_DOU: &str = "dou";
 
 impl NewsSource {
     pub fn key(&self) -> String {
