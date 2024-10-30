@@ -9,7 +9,7 @@ use anyhow::Result;
 
 #[tracing::instrument(name = "Read articles from DB", skip(db, news_source))]
 pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<Article>> {
-    let source: String = news_source.clone().into();
+    let source: String = news_source.key.clone();
     let records = sqlx::query!(
         r#"
         SELECT id, link, title, description, tags
@@ -49,7 +49,7 @@ pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<(), sqlx::Error
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
             article.id,
-            Into::<String>::into(article.source),
+            Into::<String>::into(article.source.key),
             article.title,
             Into::<String>::into(article.link),
             article.description,

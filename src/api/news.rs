@@ -1,4 +1,4 @@
-use crate::domain::{Article, NewsSource};
+use crate::domain::{Article, NewsSource, NewsSourceKind};
 use crate::error::error_chain_fmt;
 use crate::services::{dou, hacker_news, irish_times};
 use actix_web::http::StatusCode;
@@ -33,18 +33,11 @@ pub async fn get_news(
     db: web::Data<PgPool>,
     http_client: web::Data<Client>,
 ) -> Result<HttpResponse, NewsError> {
-    let source: NewsSource = match query.source.as_str().try_into() {
-        Ok(value) => value,
-        Err(_) => {
-            let error = format!("{} is not supported", query.source);
-            return Err(NewsError::UnsupportedSource(error));
-        }
-    };
-
-    let articles = match source {
-        NewsSource::IrishTimes => irish_times::api::get_latest_news(&db).await,
-        NewsSource::HackerNews => hacker_news::api::get_latest_news(&http_client).await,
-        NewsSource::Dou => dou::api::get_latest_news(&http_client).await,
+    let source = NewsSource::from_key(query.source.as_str())?;
+    let articles = match source.kind {
+        NewsSourceKind::IrishTimes => irish_times::api::get_latest_news(source, &db).await,
+        NewsSourceKind::HackerNews => hacker_news::api::get_latest_news(&http_client).await,
+        NewsSourceKind::Dou => dou::api::get_latest_news(&http_client).await,
     }
     .context("Failed to read latest irish times articles")?;
 

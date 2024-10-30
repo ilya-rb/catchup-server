@@ -1,10 +1,10 @@
 use std::error::Error;
 
+use crate::domain::{Article, NewsSource, NewsSourceKind, Tags};
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 use url::Url;
-
-use crate::domain::{Article, NewsSource, Tags};
+use NewsSourceKind::Dou;
 
 #[tracing::instrument("Scraping DOU articles")]
 pub async fn scrape_latest_articles(
@@ -30,7 +30,15 @@ fn parse_articles(document: &Html) -> Result<Vec<Article>, Box<dyn Error>> {
             // TODO: Handle error, log and skip broken articles
             let url = Url::parse(link.as_str()).expect("Invalid URL");
             // TODO: Handle error and skip broken articles
-            Article::new(title, Some(description), url, NewsSource::Dou, tags).unwrap()
+
+            Article::new(
+                title,
+                Some(description),
+                url,
+                NewsSource::of_kind(Dou),
+                tags,
+            )
+            .unwrap()
         })
         .collect::<Vec<Article>>();
 
@@ -71,10 +79,11 @@ fn parse_tags(element: &ElementRef) -> Tags {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{Article, NewsSource};
+    use crate::domain::{Article, NewsSource, NewsSourceKind};
     use crate::services::dou::article_scraper::parse_articles;
     use scraper::Html;
     use url::Url;
+    use NewsSourceKind::Dou;
 
     #[test]
     fn parse_article_correctly() {
@@ -83,7 +92,7 @@ mod tests {
             "Article title".into(),
             Some("Article description".into()),
             Url::parse("https://example.com").unwrap(),
-            NewsSource::Dou,
+            NewsSource::of_kind(Dou),
             vec![String::from("Tag1"), String::from("Tag2")].into(),
         )
         .unwrap();

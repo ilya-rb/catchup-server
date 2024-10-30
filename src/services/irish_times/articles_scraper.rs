@@ -3,7 +3,7 @@ use scraper::{ElementRef, Html, Selector};
 use std::error::Error;
 use url::Url;
 
-use crate::domain::{Article, NewsSource};
+use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes};
 
 #[tracing::instrument("Scrape irish times articles")]
 pub async fn scrape_latest_articles(
@@ -39,7 +39,7 @@ fn parse_articles(url: Url, document: &Html, tag: String) -> Result<Vec<Article>
                 title,
                 description,
                 url,
-                NewsSource::IrishTimes,
+                NewsSource::of_kind(IrishTimes),
                 vec![tag.clone()].into(),
             )
             .unwrap() // TODO: Handle error and skip broken articles
@@ -79,7 +79,7 @@ mod tests {
     use scraper::Html;
     use url::Url;
 
-    use crate::domain::{Article, NewsSource, Tag, Tags};
+    use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes, Tag, Tags};
 
     use super::parse_articles;
 
@@ -90,7 +90,7 @@ mod tests {
             String::from("Smart heater gives greater control over comfort and cost"),
             Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
-            NewsSource::IrishTimes,
+            NewsSource::of_kind(IrishTimes),
             Tags(vec![Tag::new(String::from("Technology")).unwrap()]),
         ).unwrap()
     )]
@@ -100,7 +100,7 @@ mod tests {
             String::from("Smart heater gives greater control over comfort and cost"),
             None,
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
-            NewsSource::IrishTimes,
+            NewsSource::of_kind(IrishTimes),
             Tags(vec![Tag::new(String::from("Technology")).unwrap()]),
         ).unwrap()
     )]
