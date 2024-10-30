@@ -15,36 +15,36 @@ name = "catchup-server"
 actix-web = "4.9.0"
 actix-jobs = "0.1.7"
 actix-files = "0.6.6"
-anyhow = "1.0.82"
+anyhow = "1.0.91"
 chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
-config = "0.14.0"
+config = "0.14.1"
 regex = "1.11.1"
-reqwest = { version = "0.12.4", features = ["json"] }
+reqwest = { version = "0.12.9", features = ["json"] }
 scraper = "0.20.0"
-secrecy = { version = "0.8.0", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
+secrecy = { version = "0.10.0", features = ["serde"] }
+serde = { version = "1.0.214", features = ["derive"] }
 serde-aux = "4.5.0"
 strum = "0.26.3"
 strum_macros = "0.26.4"
-thiserror = "1.0.59"
+thiserror = "1.0.65"
 tokio-retry = "0.3.0"
 tracing = { version = "0.1.40", features = ["log"] }
-tracing-actix-web = "0.7.10"
+tracing-actix-web = "0.7.14"
 tracing-bunyan-formatter = "0.3.9"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["registry", "env-filter"] }
-uuid = { version = "1", features = ["v4", "serde"] }
-url = { version = "2.5.0", features = ["serde"] }
+uuid = { version = "1.11.0", features = ["v4", "serde"] }
+url = { version = "2.5.2", features = ["serde"] }
 
 [dependencies.tokio]
-version = "1"
+version = "1.41.0"
 features = [
     "macros",
     "rt-multi-thread"
 ]
 
 [dependencies.sqlx]
-version = "0.8.0"
+version = "0.8.2"
 default-features = false
 features = [
     "runtime-tokio-rustls",
@@ -56,9 +56,9 @@ features = [
 ]
 
 [dev-dependencies]
-once_cell = "1.19.0"
-rstest = "0.22.0"
+once_cell = "1.20.2"
+rstest = "0.23.0"
 claims = "0.7.1"
-wiremock = "0.6.0"
-tokio = { version = "1", features = ["rt", "macros"] }
+wiremock = "0.6.2"
+tokio = { version = "1.41.0", features = ["rt", "macros"] }
 

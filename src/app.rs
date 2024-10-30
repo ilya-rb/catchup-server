@@ -55,7 +55,7 @@ impl App {
                 .app_data(db_pool.clone())
                 .app_data(http_client.clone())
                 .app_data(settings.clone())
-                .service(actix_files::Files::new("/images", "./static/").use_last_modified(true))
+                .service(actix_files::Files::new("/assets", "./static/"))
         })
         .listen(self.request_listener)?
         .run();
