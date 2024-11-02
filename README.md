@@ -1,0 +1,1 @@
+[![CI](https://github.com/ilya-rb/catchup-server/actions/workflows/general.yml/badge.svg)](https://github.com/ilya-rb/catchup-server/actions/workflows/general.yml)
