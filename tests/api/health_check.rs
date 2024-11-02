@@ -1,13 +1,15 @@
-use crate::test_app::spawn_app;
+use crate::test_app::TestApp;
+use sqlx::PgPool;
 
-#[tokio::test]
-pub async fn health_check_returns_200() {
-    let app = spawn_app().await;
+#[sqlx::test]
+pub async fn health_check_returns_200(db_pool: PgPool) {
+    let app = TestApp::new(db_pool).await;
     let client = reqwest::Client::new();
+
     let response = client
-        .get(format!("{}/healthcheck", &app.address))
+        .get(format!("{}/healthcheck", &app.address.0))
         .send()
         .await;
 
-    claims::assert_ok!(response);
+    assert!(response.unwrap().status().is_success());
 }

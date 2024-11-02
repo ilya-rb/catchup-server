@@ -22,6 +22,14 @@ pub struct App {
 impl App {
     pub async fn build(settings: Settings) -> Result<Self, std::io::Error> {
         let db_pool = PgPoolOptions::new().connect_lazy_with(settings.database.with_db());
+        Self::build_internal(settings, db_pool).await
+    }
+
+    pub async fn build_test(settings: Settings, db_pool: PgPool) -> Result<Self, std::io::Error> {
+        Self::build_internal(settings, db_pool).await
+    }
+
+    async fn build_internal(settings: Settings, db_pool: PgPool) -> Result<Self, std::io::Error> {
         let address = format!("{}:{}", settings.app.host, settings.app.port);
         let request_listener = TcpListener::bind(address)?;
         let port = request_listener.local_addr()?.port();
@@ -39,12 +47,15 @@ impl App {
         })
     }
 
-    pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+    pub async fn run_until_stopped(self, schedule_jobs: bool) -> Result<(), std::io::Error> {
         let db_pool = Data::new(self.db_pool);
         let http_client = Data::new(self.http_client);
         let settings = Data::new(self.settings);
 
-        Self::setup_jobs(db_pool.clone(), settings.clone(), http_client.clone());
+        // TODO: Find a proper way to mock this in tests
+        if schedule_jobs {
+            Self::setup_jobs(db_pool.clone(), settings.clone(), http_client.clone());
+        }
 
         let server = HttpServer::new(move || {
             actix_web::App::new()

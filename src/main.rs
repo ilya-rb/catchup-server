@@ -13,7 +13,7 @@ async fn main() -> Result<(), std::io::Error> {
     let settings = configuration::read_configuration().expect("Failed to read app settings");
     let app = App::build(settings).await?;
 
-    app.run_until_stopped().await?;
+    app.run_until_stopped(true).await?;
 
     Ok(())
 }
