@@ -21,6 +21,7 @@ struct Hit {
 // TODO: Move to config
 const URL: &str = "https://hn.algolia.com/api/v1/search?tags=front_page";
 
+#[tracing::instrument(name = "Fetch hacker news articles", skip(http_client))]
 pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
     let response = http_client
         .get(URL)
@@ -32,16 +33,23 @@ pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
     let articles: Vec<Article> = response
         .hits
         .into_iter()
-        .map(|item| {
-            Article::new(
+        .filter_map(|item| {
+            let url = Url::parse(&item.url).ok()?;
+            let result = Article::new(
                 item.title,
                 Some(item.url.clone()),
-                // TODO: Handle error, log and skip broken articles
-                Url::parse(item.url.clone().as_str()).expect("Invalid url"),
+                url,
                 NewsSource::of_kind(HackerNews),
                 item.tags.into(),
-            )
-            .unwrap() // TODO: Handle error and skip broken articles
+            );
+
+            match result {
+                Ok(r) => Some(r),
+                Err(e) => {
+                    tracing::error!("Failed to parse article {:?}", e);
+                    None
+                }
+            }
         })
         .collect();
 

@@ -1,16 +1,12 @@
-use std::error::Error;
-
 use crate::domain::{Article, NewsSource, NewsSourceKind, Tags};
+use anyhow::{bail, Result};
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 use url::Url;
 use NewsSourceKind::Dou;
 
 #[tracing::instrument("Scraping DOU articles")]
-pub async fn scrape_latest_articles(
-    http_client: &Client,
-    url: Url,
-) -> Result<Vec<Article>, Box<dyn Error>> {
+pub async fn scrape_latest_articles(http_client: &Client, url: Url) -> Result<Vec<Article>> {
     let response = http_client.get(url).send().await?.error_for_status()?;
     let body = response.text().await?;
     let document = Html::parse_document(&body);
@@ -19,62 +15,108 @@ pub async fn scrape_latest_articles(
     Ok(articles)
 }
 
-fn parse_articles(document: &Html) -> Result<Vec<Article>, Box<dyn Error>> {
-    let selector = Selector::parse("div.b-lenta article")?;
+struct Headline {
+    pub text: String,
+    pub href: Url,
+}
+
+fn parse_articles(document: &Html) -> Result<Vec<Article>> {
+    let selector = Selector::parse("div.b-lenta article").expect("Failed to parse selector");
     let articles = document
         .select(&selector)
-        .map(|article| {
-            let (title, link) = parse_title_and_link(&article);
-            let description = parse_description(&article);
-            let tags = parse_tags(&article);
-            // TODO: Handle error, log and skip broken articles
-            let url = Url::parse(link.as_str()).expect("Invalid URL");
-            // TODO: Handle error and skip broken articles
+        .filter_map(|article| {
+            let headline = match parse_headline(&article) {
+                Ok(h) => h,
+                Err(e) => {
+                    tracing::error!("Failed to parse headline, skipping: {:?}", e);
+                    return None;
+                }
+            };
 
-            Article::new(
-                title,
-                Some(description),
-                url,
+            let description = match parse_description(&article) {
+                Ok(d) => d,
+                Err(e) => {
+                    tracing::error!("Failed to parse description, skipping: {:?}", e);
+                    return None;
+                }
+            };
+
+            let tags = match parse_tags(&article) {
+                Ok(t) => t,
+                Err(e) => {
+                    tracing::error!("Failed to parse tags, skipping: {:?}", e);
+                    return None;
+                }
+            };
+
+            let result = Article::new(
+                headline.text,
+                description,
+                headline.href,
                 NewsSource::of_kind(Dou),
                 tags,
-            )
-            .unwrap()
+            );
+
+            result
+                .map_err(|e| {
+                    tracing::error!("Failed to create article, skipping: {:?}", e);
+                    e
+                })
+                .ok()
         })
         .collect::<Vec<Article>>();
 
     Ok(articles)
 }
 
-fn parse_title_and_link(element: &ElementRef) -> (String, String) {
-    let selector = Selector::parse("h2 a").unwrap();
-    let element = element.select(&selector).next().unwrap();
+fn parse_headline(element: &ElementRef) -> Result<Headline> {
+    let selector = Selector::parse("h2 a").expect("Failed to parse selector");
+    let element = match element.select(&selector).next() {
+        Some(e) => e,
+        None => bail!("Headline element not found {:?}", element),
+    };
 
-    let title = element.text().next().expect("Cannot find text for title");
+    let text = match element.text().next() {
+        Some(t) => t,
+        None => bail!("Title not found for headline {:?}", element),
+    };
 
-    let link = element
-        .value()
-        .attr("href")
-        .expect("Cannot find a link for title");
+    let href = match element.value().attr("href") {
+        Some(h) => match Url::parse(h) {
+            Ok(h) => h,
+            Err(e) => bail!("Error parsing headline href {:?}", e),
+        },
+        None => bail!("Href not found for headline {:?}", element),
+    };
 
-    (title.into(), link.into())
+    Ok(Headline {
+        text: String::from(text),
+        href,
+    })
 }
 
-fn parse_description(element: &ElementRef) -> String {
-    let selector = Selector::parse("p").unwrap();
-    let element = element.select(&selector).next();
+//noinspection DuplicatedCode
+fn parse_description(element: &ElementRef) -> Result<Option<String>> {
+    let selector = Selector::parse("p").expect("Failed to parse selector");
 
-    element.unwrap().text().next().unwrap().into()
+    match element.select(&selector).next() {
+        None => {
+            tracing::warn!("Article does not contain description element");
+            Ok(None)
+        }
+        Some(e) => Ok(e.text().next().map(String::from)),
+    }
 }
 
-fn parse_tags(element: &ElementRef) -> Tags {
-    let selector = Selector::parse("div.more a:not(.topic)").unwrap();
+fn parse_tags(element: &ElementRef) -> Result<Tags> {
+    let selector = Selector::parse("div.more a:not(.topic)").expect("Failed to parse selector");
     let element = element.select(&selector);
 
-    element
-        .map(|tag| tag.text().next().unwrap().into())
-        .filter(|t: &String| !t.is_empty())
-        .collect::<Vec<String>>()
-        .into()
+    Ok(Tags::from(
+        element
+            .filter_map(|e| e.text().next().map(String::from))
+            .collect::<Vec<String>>(),
+    ))
 }
 
 #[cfg(test)]

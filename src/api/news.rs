@@ -3,7 +3,6 @@ use crate::error::error_chain_fmt;
 use crate::services::{dou, hacker_news, irish_times};
 use actix_web::http::StatusCode;
 use actix_web::{web, HttpResponse, ResponseError};
-use anyhow::Context;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -38,8 +37,7 @@ pub async fn get_news(
         NewsSourceKind::IrishTimes => irish_times::api::get_latest_news(source, &db).await,
         NewsSourceKind::HackerNews => hacker_news::api::get_latest_news(&http_client).await,
         NewsSourceKind::Dou => dou::api::get_latest_news(&http_client).await,
-    }
-    .context("Failed to read latest irish times articles")?;
+    }?;
 
     Ok(HttpResponse::Ok().json(web::Json(Response { articles })))
 }

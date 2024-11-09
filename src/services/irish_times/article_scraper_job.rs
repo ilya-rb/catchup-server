@@ -10,7 +10,7 @@ pub async fn run_scraper(db: &PgPool, http_client: &Client) -> Result<()> {
     let tag: String = "technology".into();
     let articles = irish_times::articles_scraper::scrape_latest_articles(
         http_client,
-        Url::parse(format!("https://irishtimes.com/{}", tag).as_str()).unwrap(),
+        &Url::parse(format!("https://irishtimes.com/{}", tag).as_str())?,
         tag,
     )
     .await

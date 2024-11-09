@@ -7,8 +7,7 @@ use url::Url;
 pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
     let articles =
         article_scraper::scrape_latest_articles(http_client, Url::parse("https://dou.ua/lenta")?)
-            .await
-            .unwrap();
+            .await?;
 
     Ok(articles)
 }

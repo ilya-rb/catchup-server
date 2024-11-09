@@ -2,8 +2,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 use url::Url;
 
-use crate::domain::Article;
-use crate::domain::NewsSource;
+use crate::domain::{Article, NewsSource};
 
 use anyhow::Result;
 
@@ -18,7 +17,11 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
         source,
     )
     .fetch_all(db)
-    .await?;
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to read articles from DB: {:?}", e);
+        e
+    })?;
 
     let articles = records
         .into_iter()
@@ -36,7 +39,7 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
 }
 
 #[tracing::instrument(name = "Write scraped articles", skip(db, articles))]
-pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<(), sqlx::Error> {
+pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<()> {
     let mut transaction = db.begin().await?;
 
     for article in articles {

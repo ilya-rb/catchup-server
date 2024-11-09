@@ -1,6 +1,6 @@
+use anyhow::{bail, Result};
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
-use std::error::Error;
 use url::Url;
 
 use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes};
@@ -8,11 +8,11 @@ use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes};
 #[tracing::instrument("Scrape irish times articles")]
 pub async fn scrape_latest_articles(
     http_client: &Client,
-    url: Url,
+    url: &Url,
     tag: String,
-) -> Result<Vec<Article>, Box<dyn Error>> {
+) -> Result<Vec<Article>> {
     let response = http_client
-        .get(url.clone())
+        .get(url.as_ref())
         .send()
         .await?
         .error_for_status()?;
@@ -24,53 +24,92 @@ pub async fn scrape_latest_articles(
     Ok(articles)
 }
 
-fn parse_articles(url: Url, document: &Html, tag: String) -> Result<Vec<Article>, Box<dyn Error>> {
-    let selector = Selector::parse("article")?;
+struct Headline {
+    pub text: String,
+    pub href: String,
+}
+
+fn parse_articles(url: &Url, document: &Html, tag: String) -> Result<Vec<Article>> {
+    let selector = match Selector::parse("article") {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::error!("Failed to find articles by selector {:?}", e);
+            return Ok(vec![]);
+        }
+    };
+
     let articles = document
         .select(&selector)
-        .map(|article| {
-            let (title, link) = parse_title_and_link(&article);
-            let description = parse_description(&article);
+        .filter_map(|article| {
+            let headline = match parse_headline(&article) {
+                Ok(h) => h,
+                Err(e) => {
+                    tracing::error!("Failed to parse article headline, skipping {:?}", e);
+                    return None;
+                }
+            };
+            let description = match parse_description(&article) {
+                Ok(d) => d,
+                Err(e) => {
+                    tracing::error!("Failed to parse article description, skipping {:?}", e);
+                    return None;
+                }
+            };
 
             let mut url = url.clone();
-            url.set_path(link.as_str());
+            url.set_path(headline.href.as_str());
 
-            Article::new(
-                title,
+            let result = Article::new(
+                headline.text,
                 description,
                 url,
                 NewsSource::of_kind(IrishTimes),
                 vec![tag.clone()].into(),
-            )
-            .unwrap() // TODO: Handle error and skip broken articles
+            );
+
+            result
+                .map_err(|e| {
+                    tracing::error!("Failed to create article, skipping {:?}", e);
+                    e
+                })
+                .ok()
         })
         .collect::<Vec<Article>>();
 
     Ok(articles)
 }
 
-fn parse_title_and_link(article: &ElementRef) -> (String, String) {
-    let title_selector = Selector::parse("h2 a").unwrap();
-    let title_element = article.select(&title_selector).next().unwrap();
+fn parse_headline(article: &ElementRef) -> Result<Headline> {
+    let selector = Selector::parse("h2 a").expect("Failed to parse selector");
+    let element = article.select(&selector).next().unwrap();
 
-    let title = title_element
-        .text()
-        .next()
-        .expect("Cannot find text for <a> link");
+    let text = match element.text().next() {
+        None => bail!("Text is missing from headline"),
+        Some(t) => t,
+    };
 
-    let link = title_element
-        .value()
-        .attr("href")
-        .expect("Cannot find a link for <a> tag");
+    let href = match element.value().attr("href") {
+        None => bail!("Headline href is missing"),
+        Some(h) => h,
+    };
 
-    (title.into(), link.into())
+    Ok(Headline {
+        text: String::from(text),
+        href: String::from(href),
+    })
 }
 
-fn parse_description(article: &ElementRef) -> Option<String> {
-    let description_selector = Selector::parse("p a").unwrap();
-    let description_element = article.select(&description_selector).next();
+//noinspection DuplicatedCode
+fn parse_description(article: &ElementRef) -> Result<Option<String>> {
+    let selector = Selector::parse("p a").expect("Failed to parse selector");
 
-    description_element.map(|d| d.text().next().unwrap().into())
+    match article.select(&selector).next() {
+        None => {
+            tracing::warn!("Article does not contain description element");
+            Ok(None)
+        }
+        Some(element) => Ok(element.text().next().map(String::from)),
+    }
 }
 
 #[cfg(test)]
@@ -85,19 +124,19 @@ mod tests {
 
     #[rstest]
     #[case(
-        r#"<body><div><article><div><h2><a href="/path/to/article">Smart heater gives greater control over comfort and cost</a></h2><p><a>Tech review: Aeno Premium Eco Smart Heater</a></p></div></article></div></body>"#,
+        r#"<body><div><article><div><h2><a href="/path/to/article">Title</a></h2><p><a>Description</a></p></div></article></div></body>"#,
         Article::new(
-            String::from("Smart heater gives greater control over comfort and cost"),
-            Some(String::from("Tech review: Aeno Premium Eco Smart Heater")),
+            String::from("Title"),
+            Some(String::from("Description")),
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::of_kind(IrishTimes),
             Tags(vec![Tag::new(String::from("Technology")).unwrap()]),
         ).unwrap()
     )]
     #[case(
-        r#"<body><div><article><div><h2><a href="path/to/article">Smart heater gives greater control over comfort and cost</a></h2></div></article></div></body>"#,
+        r#"<body><div><article><div><h2><a href="path/to/article">Title</a></h2></div></article></div></body>"#,
         Article::new(
-            String::from("Smart heater gives greater control over comfort and cost"),
+            String::from("Title"),
             None,
             Url::parse("https://irishtimes.com/path/to/article").unwrap(),
             NewsSource::of_kind(IrishTimes),
@@ -107,7 +146,7 @@ mod tests {
     fn parse_article_correctly(#[case] html: String, #[case] expected: Article) {
         let tag = String::from("Technology");
         let url = Url::parse("https://irishtimes.com").unwrap();
-        let actual = parse_articles(url, &Html::parse_fragment(&html), tag).unwrap();
+        let actual = parse_articles(&url, &Html::parse_fragment(&html), tag).unwrap();
 
         assert_eq!(actual, vec![expected]);
     }

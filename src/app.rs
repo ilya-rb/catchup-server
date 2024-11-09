@@ -21,15 +21,20 @@ pub struct App {
 
 impl App {
     pub async fn build(settings: Settings) -> Result<Self, std::io::Error> {
-        let db_pool = PgPoolOptions::new().connect_lazy_with(settings.database.with_db());
-        Self::build_internal(settings, db_pool).await
+        Self::build_internal(settings, None).await
     }
 
     pub async fn build_test(settings: Settings, db_pool: PgPool) -> Result<Self, std::io::Error> {
-        Self::build_internal(settings, db_pool).await
+        Self::build_internal(settings, Some(db_pool)).await
     }
 
-    async fn build_internal(settings: Settings, db_pool: PgPool) -> Result<Self, std::io::Error> {
+    async fn build_internal(
+        settings: Settings,
+        db_pool: Option<PgPool>,
+    ) -> Result<Self, std::io::Error> {
+        let db_pool = db_pool
+            .unwrap_or_else(|| PgPoolOptions::new().connect_lazy_with(settings.database.with_db()));
+
         let address = format!("{}:{}", settings.app.host, settings.app.port);
         let request_listener = TcpListener::bind(address)?;
         let port = request_listener.local_addr()?.port();
@@ -60,12 +65,12 @@ impl App {
         let server = HttpServer::new(move || {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
-                .route("/healthcheck", web::get().to(api::health_check))
-                .route("/news", web::get().to(api::get_news))
-                .route("/supported_sources", web::get().to(api::supported_sources))
                 .app_data(db_pool.clone())
                 .app_data(http_client.clone())
                 .app_data(settings.clone())
+                .route("/healthcheck", web::get().to(api::health_check))
+                .route("/news", web::get().to(api::get_news))
+                .route("/supported_sources", web::get().to(api::supported_sources))
                 .service(actix_files::Files::new("/assets", "./static/"))
         })
         .listen(self.request_listener)?
