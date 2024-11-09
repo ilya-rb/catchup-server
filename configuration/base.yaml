@@ -16,11 +16,11 @@ scraper_config:
 services:
   irish_times:
     key: "irishtimes"
-    base_url: "https://irishtimes.com"
+    url: "https://irishtimes.com"
     tag: "technology"
   hacker_news:
     key: "hackernews"
-    base_url: "https://hn.algolia.com/api/v1/search?tags=front_page"
+    url: "https://hn.algolia.com/api/v1/search?tags=front_page"
   dou:
     key: "dou"
-    base_url: "https://dou.ua/lenta"
+    url: "https://dou.ua/lenta"
