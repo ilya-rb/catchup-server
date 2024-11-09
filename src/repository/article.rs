@@ -2,7 +2,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 use url::Url;
 
-use crate::domain::{Article, NewsSource};
+use crate::domain::{Article, NewsSource, Tag, Tags};
 
 use anyhow::Result;
 
@@ -30,7 +30,12 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
             link: Url::parse(row.link.as_str()).unwrap(),
             title: row.title,
             description: row.description,
-            tags: row.tags.into(),
+            tags: Tags(
+                row.tags
+                    .iter()
+                    .map(|t| Tag::new(t.clone()).unwrap())
+                    .collect(),
+            ),
             source: news_source.clone(),
         })
         .collect();

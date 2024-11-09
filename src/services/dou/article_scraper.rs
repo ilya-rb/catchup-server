@@ -49,20 +49,15 @@ fn parse_articles(document: &Html) -> Result<Vec<Article>> {
                 }
             };
 
-            let result = Article::new(
+            Article::new(
                 headline.text,
                 description,
                 headline.href,
                 NewsSource::of_kind(Dou),
                 tags,
-            );
-
-            result
-                .map_err(|e| {
-                    tracing::error!("Failed to create article, skipping: {:?}", e);
-                    e
-                })
-                .ok()
+            )
+            .map_err(|e| tracing::error!("Failed to create article, skipping: {:?}", e))
+            .ok()
         })
         .collect::<Vec<Article>>();
 

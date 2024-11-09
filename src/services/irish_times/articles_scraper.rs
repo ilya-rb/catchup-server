@@ -59,20 +59,15 @@ fn parse_articles(url: &Url, document: &Html, tag: String) -> Result<Vec<Article
             let mut url = url.clone();
             url.set_path(headline.href.as_str());
 
-            let result = Article::new(
+            Article::new(
                 headline.text,
                 description,
                 url,
                 NewsSource::of_kind(IrishTimes),
                 vec![tag.clone()].into(),
-            );
-
-            result
-                .map_err(|e| {
-                    tracing::error!("Failed to create article, skipping {:?}", e);
-                    e
-                })
-                .ok()
+            )
+            .map_err(|e| tracing::error!("Failed to create article, skipping {:?}", e))
+            .ok()
         })
         .collect::<Vec<Article>>();
 
