@@ -1,4 +1,4 @@
-use crate::domain::{Article, NewsSource, NewsSourceKind, Tags};
+use crate::domain::{Article, NewsSource, NewsSourceKind, Tag, Tags};
 use anyhow::{bail, Result};
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
@@ -107,16 +107,20 @@ fn parse_tags(element: &ElementRef) -> Result<Tags> {
     let selector = Selector::parse("div.more a:not(.topic)").expect("Failed to parse selector");
     let element = element.select(&selector);
 
-    Ok(Tags::from(
+    Ok(Tags(
         element
-            .filter_map(|e| e.text().next().map(String::from))
-            .collect::<Vec<String>>(),
+            .filter_map(|e| {
+                Tag::new(e.text().next().map(String::from).unwrap_or_default())
+                    .map_err(|e| tracing::error!("Failed to parse tag, skipping: {:?}", e))
+                    .ok()
+            })
+            .collect::<Vec<Tag>>(),
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{Article, NewsSource, NewsSourceKind};
+    use crate::domain::{Article, NewsSource, NewsSourceKind, Tag, Tags};
     use crate::services::dou::article_scraper::parse_articles;
     use scraper::Html;
     use url::Url;
@@ -130,7 +134,10 @@ mod tests {
             Some("Article description".into()),
             Url::parse("https://example.com").unwrap(),
             NewsSource::of_kind(Dou),
-            vec![String::from("Tag1"), String::from("Tag2")].into(),
+            Tags(vec![
+                Tag::new(String::from("Tag1")).unwrap(),
+                Tag::new(String::from("Tag2")).unwrap(),
+            ]),
         )
         .unwrap();
 

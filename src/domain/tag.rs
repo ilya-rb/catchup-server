@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct Tag(pub String);
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -13,13 +13,6 @@ impl Tag {
             bail!("Tag cannot be empty");
         }
         Ok(Tag(value))
-    }
-}
-
-impl From<Vec<String>> for Tags {
-    fn from(value: Vec<String>) -> Self {
-        // TODO: Expose error instead of unwrap
-        Tags(value.into_iter().map(|v| Tag::new(v).unwrap()).collect())
     }
 }
 

@@ -3,13 +3,13 @@ use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 use url::Url;
 
-use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes};
+use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes, Tag, Tags};
 
 #[tracing::instrument("Scrape irish times articles")]
 pub async fn scrape_latest_articles(
     http_client: &Client,
     url: &Url,
-    tag: String,
+    tag: Tag,
 ) -> Result<Vec<Article>> {
     let response = http_client
         .get(url.as_ref())
@@ -29,7 +29,7 @@ struct Headline {
     pub href: String,
 }
 
-fn parse_articles(url: &Url, document: &Html, tag: String) -> Result<Vec<Article>> {
+fn parse_articles(url: &Url, document: &Html, tag: Tag) -> Result<Vec<Article>> {
     let selector = match Selector::parse("article") {
         Ok(r) => r,
         Err(e) => {
@@ -48,6 +48,7 @@ fn parse_articles(url: &Url, document: &Html, tag: String) -> Result<Vec<Article
                     return None;
                 }
             };
+
             let description = match parse_description(&article) {
                 Ok(d) => d,
                 Err(e) => {
@@ -64,7 +65,7 @@ fn parse_articles(url: &Url, document: &Html, tag: String) -> Result<Vec<Article
                 description,
                 url,
                 NewsSource::of_kind(IrishTimes),
-                vec![tag.clone()].into(),
+                Tags(vec![tag.clone()]),
             )
             .map_err(|e| tracing::error!("Failed to create article, skipping {:?}", e))
             .ok()
@@ -139,7 +140,7 @@ mod tests {
         ).unwrap()
     )]
     fn parse_article_correctly(#[case] html: String, #[case] expected: Article) {
-        let tag = String::from("Technology");
+        let tag = Tag::new(String::from("Technology")).unwrap();
         let url = Url::parse("https://irishtimes.com").unwrap();
         let actual = parse_articles(&url, &Html::parse_fragment(&html), tag).unwrap();
 
