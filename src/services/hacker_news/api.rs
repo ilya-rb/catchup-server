@@ -1,3 +1,4 @@
+use crate::configuration::Settings;
 use crate::domain::{Article, NewsSource, NewsSourceKind, Tag, Tags};
 use anyhow::Result;
 use reqwest::Client;
@@ -18,13 +19,10 @@ struct Hit {
     tags: Vec<String>,
 }
 
-// TODO: Move to config
-const URL: &str = "https://hn.algolia.com/api/v1/search?tags=front_page";
-
-#[tracing::instrument(name = "Fetch hacker news articles", skip(http_client))]
-pub async fn get_latest_news(http_client: &Client) -> Result<Vec<Article>> {
+#[tracing::instrument(name = "Fetch hacker news articles", skip(http_client, settings))]
+pub async fn get_latest_news(http_client: &Client, settings: &Settings) -> Result<Vec<Article>> {
     let response = http_client
-        .get(URL)
+        .get(settings.services.hacker_news.url.as_ref())
         .send()
         .await?
         .json::<Response>()

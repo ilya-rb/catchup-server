@@ -1,19 +1,19 @@
+use crate::domain::Tag;
+use crate::environment::Environment;
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgSslMode;
 use sqlx::ConnectOptions;
-use std::collections::HashMap;
-
-use crate::environment::Environment;
+use url::Url;
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub app: AppSettings,
     pub database: DatabaseSettings,
     pub http_client: HttpClientSettings,
-    pub supported_sources: HashMap<String, SupportedSource>,
     pub scraper_config: ScraperConfig,
+    pub services: Services,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -41,13 +41,28 @@ pub struct HttpClientSettings {
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct SupportedSource {
-    pub key: String,
+pub struct ScraperConfig {
+    pub schedule: String,
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct ScraperConfig {
-    pub schedule: String,
+pub struct Services {
+    pub irish_times: IrishTimes,
+    pub hacker_news: Service,
+    pub dou: Service,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct IrishTimes {
+    pub key: String,
+    pub url: Url,
+    pub tag: Tag,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct Service {
+    pub key: String,
+    pub url: Url,
 }
 
 pub fn read_configuration() -> Result<Settings, config::ConfigError> {

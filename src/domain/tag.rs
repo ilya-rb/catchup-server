@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct Tag(pub String);
@@ -13,6 +13,15 @@ impl Tag {
             bail!("Tag cannot be empty");
         }
         Ok(Tag(value))
+    }
+}
+
+impl<'de> Deserialize<'de> for Tag {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Tag::new(String::deserialize(deserializer)?).unwrap())
     }
 }
 

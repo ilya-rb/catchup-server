@@ -9,14 +9,18 @@ database:
   password: "password"
   database_name: "catchup"
   require_ssl: false
-scraper_config:
-  schedule: "0 */12 * * *"
-supported_sources:
-  irishtimes:
-    key: "irishtimes"
-  hackernews:
-    key: "hackernews"
-  dou:
-    key: "dou"
 http_client:
   timeout_millis: 10000
+scraper_config:
+  schedule: "0 */12 * * *"
+services:
+  irish_times:
+    key: "irishtimes"
+    base_url: "https://irishtimes.com"
+    tag: "technology"
+  hacker_news:
+    key: "hackernews"
+    base_url: "https://hn.algolia.com/api/v1/search?tags=front_page"
+  dou:
+    key: "dou"
+    base_url: "https://dou.ua/lenta"
