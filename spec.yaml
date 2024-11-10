@@ -1,5 +1,9 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+
 name: catchup-server
 region: fra1 # Frankfurt, Germany
+
 services:
   - name: catchup-server
     dockerfile_path: Dockerfile
@@ -7,15 +11,23 @@ services:
     github:
       branch: master
       deploy_on_push: true
-      repo: ilya-rb/catchup
+      repo: ilya-rb/catchup-server
     health_check:
       http_path: /healthcheck
     http_port: 8000
-    instance_count: 1 # TODO: to configure for prod
-    instance_size_slug: basic-xxs # TODO: to configure for prod
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    autoscaling:
+      max_instance_count: 2
+      metrics:
+        cpu:
+          percent: 80
     routes:
       - path: /
     envs:
+      - key: APP_APPLICATION__BASE_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
       - key: APP_DATABASE__USERNAME
         scope: RUN_TIME
         value: ${catchup.USERNAME}
@@ -35,6 +47,6 @@ services:
 databases:
   - engine: PG
     name: catchup
-    num_nodes: 1 # TODO: to configure for prod
-    size: db-s-dev-database # TODO: to configure for prod
-    version: "12"
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "14"
