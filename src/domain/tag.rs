@@ -21,7 +21,8 @@ impl<'de> Deserialize<'de> for Tag {
     where
         D: Deserializer<'de>,
     {
-        Ok(Tag::new(String::deserialize(deserializer)?).unwrap())
+        let s = String::deserialize(deserializer)?;
+        Tag::new(s).map_err(serde::de::Error::custom)
     }
 }
 
