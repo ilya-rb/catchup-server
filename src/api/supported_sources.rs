@@ -1,6 +1,7 @@
 use crate::configuration::Settings;
 use actix_web::{web, HttpResponse};
 use serde::Serialize;
+use url::Url;
 
 #[derive(Serialize)]
 pub struct Response {
@@ -16,7 +17,7 @@ pub struct SupportedSource {
 
 #[tracing::instrument(name = "Querying supported sources", skip(settings))]
 pub async fn supported_sources(settings: web::Data<Settings>) -> HttpResponse {
-    let base_url = settings.app.base_url.as_str();
+    let base_url = &settings.app.base_url;
     let port = settings.app.port;
     let sources = vec![
         as_supported_source(base_url, settings.services.irish_times.key.as_str(), port),
@@ -28,9 +29,13 @@ pub async fn supported_sources(settings: web::Data<Settings>) -> HttpResponse {
     HttpResponse::Ok().json(response)
 }
 
-fn as_supported_source(base_url: &str, key: &str, port: u16) -> SupportedSource {
+fn as_supported_source(base_url: &Url, key: &str, port: u16) -> SupportedSource {
+    let mut url = base_url.clone();
+    url.set_port(Some(port)).unwrap();
+    url.set_path(format!("images/icons/{}.png", key).as_str());
+
     SupportedSource {
         id: String::from(key),
-        image_url: format!("{}:{}/images/icons/{}.png", base_url, port, key),
+        image_url: url.to_string(),
     }
 }

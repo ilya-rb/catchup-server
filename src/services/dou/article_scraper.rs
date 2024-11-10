@@ -85,7 +85,7 @@ fn parse_headline(element: &ElementRef) -> Result<Headline> {
     };
 
     Ok(Headline {
-        text: String::from(text),
+        text: String::from(text).replace("\n", "").replace("\t", ""),
         href,
     })
 }
