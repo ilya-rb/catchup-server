@@ -7,7 +7,7 @@ pub async fn health_check_returns_200(db_pool: PgPool) {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{}/healthcheck", &app.address.0))
+        .get(format!("{}/healthcheck", &app.app_url))
         .send()
         .await;
 

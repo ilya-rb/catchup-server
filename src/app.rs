@@ -1,4 +1,3 @@
-use actix_jobs::{run_forever, Scheduler};
 use actix_web::web::Data;
 use actix_web::{web, HttpServer};
 use reqwest::Client;
@@ -9,7 +8,6 @@ use tracing_actix_web::TracingLogger;
 
 use crate::api;
 use crate::configuration::Settings;
-use crate::jobs::scraper_job::ScraperJob;
 
 pub struct App {
     pub db_pool: PgPool,
@@ -24,7 +22,10 @@ impl App {
         Self::build_internal(settings, None).await
     }
 
-    pub async fn build_test(settings: Settings, db_pool: PgPool) -> Result<Self, std::io::Error> {
+    pub async fn with_custom_db(
+        settings: Settings,
+        db_pool: PgPool,
+    ) -> Result<Self, std::io::Error> {
         Self::build_internal(settings, Some(db_pool)).await
     }
 
@@ -32,10 +33,14 @@ impl App {
         settings: Settings,
         db_pool: Option<PgPool>,
     ) -> Result<Self, std::io::Error> {
-        let db_pool = db_pool
-            .unwrap_or_else(|| PgPoolOptions::new().connect_lazy_with(settings.database.with_db()));
+        let db_pool = db_pool.unwrap_or_else(|| {
+            PgPoolOptions::new().connect_lazy_with(settings.database.connect_options())
+        });
 
         let address = format!("{}:{}", settings.app.host, settings.app.port);
+
+        println!("Listening on {}", address);
+
         let request_listener = TcpListener::bind(address)?;
         let port = request_listener.local_addr()?.port();
         let http_client = Client::builder()
@@ -52,20 +57,15 @@ impl App {
         })
     }
 
-    pub async fn run_until_stopped(self, schedule_jobs: bool) -> Result<(), std::io::Error> {
-        let db_pool = Data::new(self.db_pool);
+    pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+        let db = Data::new(self.db_pool);
         let http_client = Data::new(self.http_client);
         let settings = Data::new(self.settings);
-
-        // TODO: Find a proper way to mock this in tests
-        if schedule_jobs {
-            Self::setup_jobs(db_pool.clone(), settings.clone(), http_client.clone());
-        }
 
         let server = HttpServer::new(move || {
             actix_web::App::new()
                 .wrap(TracingLogger::default())
-                .app_data(db_pool.clone())
+                .app_data(db.clone())
                 .app_data(http_client.clone())
                 .app_data(settings.clone())
                 .route("/healthcheck", web::get().to(api::health_check))
@@ -81,18 +81,5 @@ impl App {
 
     pub fn port(&self) -> u16 {
         self.port
-    }
-
-    fn setup_jobs(db_pool: Data<PgPool>, settings: Data<Settings>, http_client: Data<Client>) {
-        let mut scheduler = Scheduler::new();
-        let scraper_job = ScraperJob {
-            settings,
-            http_client,
-            db_pool,
-        };
-
-        scheduler.add(Box::new(scraper_job));
-
-        run_forever(scheduler);
     }
 }

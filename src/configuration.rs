@@ -1,10 +1,11 @@
 use crate::domain::Tag;
 use crate::environment::Environment;
+use config::Config;
+use config::File;
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgSslMode;
-use sqlx::ConnectOptions;
 use url::Url;
 
 #[derive(serde::Deserialize, Clone)]
@@ -22,6 +23,7 @@ pub struct AppSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
+    pub base_url: Url,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -66,9 +68,6 @@ pub struct Service {
 }
 
 pub fn read_configuration() -> Result<Settings, config::ConfigError> {
-    use config::Config;
-    use config::File;
-
     let base_path = std::env::current_dir().expect("Failed to find current dir");
     let config_dir = base_path.join("configuration");
 
@@ -82,7 +81,8 @@ pub fn read_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(File::from(config_dir.join("base.yaml")))
         .add_source(File::from(config_dir.join(environment_config_file)))
         .add_source(
-            // Variable format APP_APP_SETTINGS__PORT=5001 -> Settings.app_settings.port
+            // Add in settings from environment variables (with a prefix of APP and '__' as separator)
+            // E.g. `APP_APPLICATION__PORT=5001 would set `Settings.application.port`
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")
                 .separator("__"),
@@ -93,25 +93,19 @@ pub fn read_configuration() -> Result<Settings, config::ConfigError> {
 }
 
 impl DatabaseSettings {
-    pub fn without_db(&self) -> PgConnectOptions {
+    pub fn connect_options(&self) -> PgConnectOptions {
         let ssl_mode = if self.require_ssl {
             PgSslMode::Require
         } else {
             PgSslMode::Prefer
         };
-
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
             .password(self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
-    }
-
-    pub fn with_db(&self) -> PgConnectOptions {
-        self.without_db()
             .database(&self.database_name)
-            .log_statements(tracing_log::log::LevelFilter::Trace)
     }
 }
 
