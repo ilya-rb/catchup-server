@@ -1,4 +1,3 @@
-use crate::domain::Tag;
 use crate::environment::Environment;
 use config::Config;
 use config::File;
@@ -49,16 +48,9 @@ pub struct ScraperConfig {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Services {
-    pub irish_times: IrishTimes,
+    pub irish_times: Service,
     pub hacker_news: Service,
     pub dou: Service,
-}
-
-#[derive(serde::Deserialize, Clone)]
-pub struct IrishTimes {
-    pub key: String,
-    pub url: Url,
-    pub tag: Tag,
 }
 
 #[derive(serde::Deserialize, Clone)]

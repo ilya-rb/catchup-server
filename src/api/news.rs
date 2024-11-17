@@ -6,7 +6,6 @@ use actix_web::http::StatusCode;
 use actix_web::{web, HttpResponse, ResponseError};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::fmt::Formatter;
 
 #[derive(Deserialize)]
@@ -27,16 +26,17 @@ pub enum NewsError {
     UnexpectedError(#[from] anyhow::Error),
 }
 
-#[tracing::instrument(name = "Get news", skip(query, db, http_client, settings))]
+#[tracing::instrument(name = "Get news", skip(query, http_client, settings))]
 pub async fn get_news(
     query: web::Query<QueryData>,
-    db: web::Data<PgPool>,
     http_client: web::Data<Client>,
     settings: web::Data<Settings>,
 ) -> Result<HttpResponse, NewsError> {
     let source = NewsSource::from_key(query.source.as_str())?;
     let articles = match source.kind {
-        NewsSourceKind::IrishTimes => irish_times::api::get_latest_news(source, &db).await,
+        NewsSourceKind::IrishTimes => {
+            irish_times::api::get_latest_news(source, &http_client, &settings).await
+        }
         NewsSourceKind::HackerNews => {
             hacker_news::api::get_latest_news(&http_client, &settings).await
         }

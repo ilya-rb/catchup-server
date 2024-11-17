@@ -1,10 +1,14 @@
-use anyhow::Result;
-use sqlx::PgPool;
-
+use crate::configuration::Settings;
 use crate::domain::{Article, NewsSource, NewsSourceKind};
-use crate::repository;
+use crate::services::irish_times::articles_scraper;
+use anyhow::Result;
+use reqwest::Client;
 
-pub async fn get_latest_news(news_source: NewsSource, db: &PgPool) -> Result<Vec<Article>> {
+pub async fn get_latest_news(
+    news_source: NewsSource,
+    http_client: &Client,
+    settings: &Settings,
+) -> Result<Vec<Article>> {
     assert_eq!(news_source.kind, NewsSourceKind::IrishTimes);
-    repository::article::get_by_source(db, news_source).await
+    articles_scraper::scrape_latest_articles(http_client, &settings.services.irish_times.url).await
 }

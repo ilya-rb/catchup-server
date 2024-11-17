@@ -16,8 +16,7 @@ scraper_config:
 services:
   irish_times:
     key: "irishtimes"
-    url: "https://irishtimes.com"
-    tag: "technology"
+    url: "https://irishtimes.com/article-index"
   hacker_news:
     key: "hackernews"
     url: "https://hn.algolia.com/api/v1/search?tags=front_page"
