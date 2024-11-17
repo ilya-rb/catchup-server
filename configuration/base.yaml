@@ -23,4 +23,4 @@ services:
     url: "https://hn.algolia.com/api/v1/search?tags=front_page"
   dou:
     key: "dou"
-    url: "https://dou.ua/lenta"
+    url: "https://dou.ua/feed"

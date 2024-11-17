@@ -38,9 +38,6 @@ impl App {
         });
 
         let address = format!("{}:{}", settings.app.host, settings.app.port);
-
-        println!("Listening on {}", address);
-
         let request_listener = TcpListener::bind(address)?;
         let port = request_listener.local_addr()?.port();
         let http_client = Client::builder()
