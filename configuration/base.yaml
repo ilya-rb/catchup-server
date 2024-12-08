@@ -19,7 +19,7 @@ services:
     url: "https://irishtimes.com/article-index"
   hacker_news:
     key: "hackernews"
-    url: "https://hn.algolia.com/api/v1/search?tags=front_page"
+    url: "https://hacker-news.firebaseio.com/v0"
   dou:
     key: "dou"
     url: "https://dou.ua/feed"

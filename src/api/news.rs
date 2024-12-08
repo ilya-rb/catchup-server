@@ -37,9 +37,7 @@ pub async fn get_news(
         NewsSourceKind::IrishTimes => {
             irish_times::api::get_latest_news(source, &http_client, &settings).await
         }
-        NewsSourceKind::HackerNews => {
-            hacker_news::api::get_latest_news(&http_client, &settings).await
-        }
+        NewsSourceKind::HackerNews => hacker_news::api::get_latest_news(&settings).await,
         NewsSourceKind::Dou => dou::api::get_latest_news(&http_client, &settings).await,
     }?;
 
