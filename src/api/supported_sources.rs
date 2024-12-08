@@ -32,7 +32,7 @@ pub async fn supported_sources(settings: web::Data<Settings>) -> HttpResponse {
 fn as_supported_source(base_url: &Url, key: &str, port: u16) -> SupportedSource {
     let mut url = base_url.clone();
     url.set_port(Some(port)).unwrap();
-    url.set_path(format!("images/icons/{}.png", key).as_str());
+    url.set_path(format!("assets/icons/{}.png", key).as_str());
 
     SupportedSource {
         id: String::from(key),

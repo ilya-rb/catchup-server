@@ -24,10 +24,12 @@ pub async fn scrape_latest_articles(http_client: &Client, url: Url) -> Result<Ve
 
             let result = Article::new(
                 entry.title.unwrap().content,
-                entry.summary.map(|e| e.content),
+                None,
                 url,
                 NewsSource::of_kind(Dou),
                 Tags(vec![]),
+                None,
+                entry.summary.map(|e| e.content),
             );
 
             result.ok()

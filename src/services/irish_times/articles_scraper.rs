@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Utc};
 use reqwest::Client;
 use scraper::{ElementRef, Html, Selector};
 use url::Url;
@@ -8,17 +8,8 @@ use crate::domain::{Article, NewsSource, NewsSourceKind::IrishTimes, Tag, Tags};
 
 pub async fn scrape_latest_articles(http_client: &Client, base_url: &Url) -> Result<Vec<Article>> {
     let today: DateTime<Utc> = Utc::now();
-    let url = Url::parse(
-        format!(
-            "{}/{}/{}/{}",
-            base_url,
-            today.year(),
-            today.month(),
-            today.day(),
-        )
-        .as_str(),
-    )?;
-
+    let today = today.format("%Y/%m/%d").to_string();
+    let url = Url::parse(format!("{}/{}", base_url, today).as_str())?;
     let response = http_client.get(url).send().await?.error_for_status()?;
     let body = response.text().await?;
     let document = Html::parse_document(&body);
@@ -69,6 +60,8 @@ fn parse_articles(url: &Url, document: &Html) -> Result<Vec<Article>> {
                 url,
                 NewsSource::of_kind(IrishTimes),
                 Tags(vec![tag.clone()]),
+                None,
+                None,
             )
             .map_err(|e| tracing::error!("Failed to create article, skipping {:?}", e))
             .ok()
@@ -146,6 +139,8 @@ mod tests {
             Url::parse("https://irishtimes.com/path-to-article").unwrap(),
             NewsSource::of_kind(IrishTimes),
             Tags(vec![Tag::new(String::from("Article tag")).unwrap()]),
+            None,
+            None,
         )
         .unwrap()];
         let actual = parse_articles(&url, &Html::parse_fragment(SAMPLE_HTML)).unwrap();

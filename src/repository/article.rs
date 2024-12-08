@@ -29,7 +29,7 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
             id: row.id,
             link: Url::parse(row.link.as_str()).unwrap(),
             title: row.title,
-            description: row.description,
+            short_summary: row.description,
             tags: Tags(
                 row.tags
                     .iter()
@@ -37,6 +37,8 @@ pub async fn get_by_source(db: &PgPool, news_source: NewsSource) -> Result<Vec<A
                     .collect(),
             ),
             source: news_source.clone(),
+            author_name: None,
+            content: None,
         })
         .collect();
 
@@ -60,7 +62,7 @@ pub async fn save(db: &PgPool, articles: Vec<Article>) -> Result<()> {
             Into::<String>::into(article.source.key),
             article.title,
             Into::<String>::into(article.link),
-            article.description,
+            article.short_summary,
             tags,
             Utc::now(),
         )

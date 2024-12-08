@@ -15,11 +15,11 @@ struct Response {
 struct Hit {
     title: String,
     url: String,
+    author: String,
     #[serde(rename = "_tags")]
     tags: Vec<String>,
 }
 
-#[tracing::instrument(name = "Fetch hacker news articles", skip(http_client, settings))]
 pub async fn get_latest_news(http_client: &Client, settings: &Settings) -> Result<Vec<Article>> {
     let response = http_client
         .get(settings.services.hacker_news.url.as_ref())
@@ -42,10 +42,12 @@ pub async fn get_latest_news(http_client: &Client, settings: &Settings) -> Resul
 
             Article::new(
                 item.title,
-                Some(item.url.clone()),
+                None,
                 url,
                 NewsSource::of_kind(HackerNews),
                 tags,
+                Some(item.author),
+                None,
             )
             .map_err(|e| tracing::error!("Failed to parse article {:?}", e))
             .ok()
